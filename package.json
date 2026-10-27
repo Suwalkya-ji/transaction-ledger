@@ -6,9 +6,7 @@
   "main": "src/server.js",
   "scripts": {
     "start": "node src/server.js",
-    "dev": "nodemon src/server.js",
-    "test": "node src/scripts/audit-test.js",
-    "test:db": "node src/scripts/test-db.js"
+    "dev": "nodemon src/server.js"
   },
   "keywords": [
     "express",

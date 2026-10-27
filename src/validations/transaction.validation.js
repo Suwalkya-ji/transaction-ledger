@@ -26,6 +26,9 @@ export const createTransactionSchema = z
       .positive({
         message: 'Amount must be greater than zero',
       })
+      .max(9999999999999.99, {
+        message: 'Amount exceeds maximum permitted value',
+      })
       .refine((val) => Number(val.toFixed(2)) === val, {
         message: 'Amount cannot have more than 2 decimal places',
       }),
@@ -80,6 +83,3 @@ export const getTransactionsQuerySchema = z
   .strict({
     message: 'Unrecognized query parameter',
   });
-
-// Backward compatibility alias
-export const createCreditTransactionSchema = createTransactionSchema;

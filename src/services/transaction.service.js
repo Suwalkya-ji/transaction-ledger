@@ -48,16 +48,7 @@ export const processTransaction = async (accountId, { type, amount, description,
 
     const currentBalance = parseFloat(accountResult.rows[0].balance);
 
-    // 2. Reject debit if balance is insufficient
-    if (type === 'debit' && currentBalance < amount) {
-      const error = new Error(
-        `Insufficient balance. Current balance is $${currentBalance.toFixed(2)}, cannot debit $${amount.toFixed(2)}.`
-      );
-      error.status = 400;
-      throw error;
-    }
-
-    // 3. Insert transaction record (guarded by uq_account_reference unique constraint)
+    // 2. Insert transaction record (guarded by uq_account_reference unique constraint)
     const insertTransactionSql = `
       INSERT INTO transactions (account_id, type, amount, description, reference_id)
       VALUES ($1, $2, $3, $4, $5)
@@ -83,6 +74,15 @@ export const processTransaction = async (accountId, { type, amount, description,
         throw error;
       }
       throw dbErr;
+    }
+
+    // 3. Reject debit if balance is insufficient
+    if (type === 'debit' && currentBalance < amount) {
+      const error = new Error(
+        `Insufficient balance. Current balance is $${currentBalance.toFixed(2)}, cannot debit $${amount.toFixed(2)}.`
+      );
+      error.status = 400;
+      throw error;
     }
 
     // 4. Update account balance (+ for credit, - for debit)
@@ -118,18 +118,6 @@ export const processTransaction = async (accountId, { type, amount, description,
     client.release();
   }
 };
-
-/**
- * Convenience wrapper for credit transactions
- */
-export const processCreditTransaction = (accountId, payload) =>
-  processTransaction(accountId, { ...payload, type: 'credit' });
-
-/**
- * Convenience wrapper for debit transactions
- */
-export const processDebitTransaction = (accountId, payload) =>
-  processTransaction(accountId, { ...payload, type: 'debit' });
 
 /**
  * Fetches transactions for a given account with pagination and optional type filter.

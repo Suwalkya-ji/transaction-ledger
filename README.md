@@ -12,7 +12,6 @@ A high-reliability, ACID-compliant Double-Entry-Ready Transaction Ledger API bui
 - [Environment Variables](#environment-variables)
 - [Installation & Setup](#installation--setup)
 - [Running the Application](#running-the-application)
-- [Automated Testing](#automated-testing)
 - [API Documentation](#api-documentation)
 - [Postman Testing Checklist](#postman-testing-checklist)
 - [Assumptions](#assumptions)
@@ -146,11 +145,6 @@ DATABASE_URL="postgresql://postgres.[project-ref]:[password]@aws-0-[region].pool
    npm install
    ```
 
-3. **Verify Database Connectivity**:
-   ```bash
-   npm run test:db
-   ```
-
 ---
 
 ## Running the Application
@@ -166,25 +160,6 @@ DATABASE_URL="postgresql://postgres.[project-ref]:[password]@aws-0-[region].pool
   ```
 
 The server binds to `http://localhost:3000`.
-
----
-
-## Automated Testing
-
-Run the full end-to-end integration and concurrency test suite:
-
-```bash
-npm test
-```
-
-This verifies:
-- Health check endpoints
-- Account creation & client balance tampering rejection
-- Credit processing & atomic balance increment
-- Debit processing, overdraft prevention, and sub-cent precision rejection
-- Idempotency via composite unique constraints
-- Concurrent duplicate and concurrent debit serialization
-- Balance retrieval and transaction history filtering (`credit`, `debit`, all)
 
 ---
 
