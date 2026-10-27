@@ -55,7 +55,7 @@ export const createTransactionSchema = z
     message: 'Unrecognized field in transaction payload',
   });
 
-// Query schema for filtering GET /api/accounts/:id/transactions
+// Query schema for filtering and paginating GET /api/accounts/:id/transactions
 export const getTransactionsQuerySchema = z
   .object({
     type: z
@@ -65,6 +65,17 @@ export const getTransactionsQuerySchema = z
         }),
       })
       .optional(),
+    page: z.coerce
+      .number({ invalid_type_error: 'Page must be a number' })
+      .int({ message: 'Page must be an integer' })
+      .positive({ message: 'Page must be greater than zero' })
+      .default(1),
+    limit: z.coerce
+      .number({ invalid_type_error: 'Limit must be a number' })
+      .int({ message: 'Limit must be an integer' })
+      .positive({ message: 'Limit must be greater than zero' })
+      .max(100, { message: 'Limit cannot exceed 100' })
+      .default(10),
   })
   .strict({
     message: 'Unrecognized query parameter',

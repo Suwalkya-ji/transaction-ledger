@@ -132,15 +132,18 @@ export const processDebitTransaction = (accountId, payload) =>
   processTransaction(accountId, { ...payload, type: 'debit' });
 
 /**
- * Fetches all transactions for a given account, optionally filtered by type.
+ * Fetches transactions for a given account with pagination and optional type filter.
  * Verifies account existence and returns 404 if not found.
  * Orders transactions by created_at in descending order.
  *
  * @param {string} accountId - UUID of the account
- * @param {'credit' | 'debit'} [type] - Optional filter by type
- * @returns {Promise<Array<object>>} List of transactions
+ * @param {object} [options] - Query options
+ * @param {'credit' | 'debit'} [options.type] - Optional filter by type
+ * @param {number} [options.page=1] - Current page number
+ * @param {number} [options.limit=10] - Number of items per page
+ * @returns {Promise<{ transactions: Array<object>, pagination: object }>}
  */
-export const getAccountTransactions = async (accountId, type) => {
+export const getAccountTransactions = async (accountId, { type, page = 1, limit = 10 } = {}) => {
   // 1. Verify account exists
   const accountCheckSql = 'SELECT id FROM accounts WHERE id = $1;';
   const accountResult = await query(accountCheckSql, [accountId]);
@@ -151,28 +154,45 @@ export const getAccountTransactions = async (accountId, type) => {
     throw error;
   }
 
-  // 2. Query transactions using parameterized SQL with created_at DESC
-  let sql;
-  let params;
+  // 2. Count total records matching criteria
+  let countSql = 'SELECT COUNT(*) AS total FROM transactions WHERE account_id = $1';
+  const countParams = [accountId];
 
   if (type) {
-    sql = `
-      SELECT id, account_id, type, amount, description, reference_id, created_at
-      FROM transactions
-      WHERE account_id = $1 AND type = $2
-      ORDER BY created_at DESC;
-    `;
-    params = [accountId, type];
-  } else {
-    sql = `
-      SELECT id, account_id, type, amount, description, reference_id, created_at
-      FROM transactions
-      WHERE account_id = $1
-      ORDER BY created_at DESC;
-    `;
-    params = [accountId];
+    countSql += ' AND type = $2';
+    countParams.push(type);
   }
 
-  const result = await query(sql, params);
-  return result.rows;
+  const countResult = await query(countSql, countParams);
+  const totalRecords = parseInt(countResult.rows[0].total, 10);
+  const totalPages = Math.ceil(totalRecords / limit) || 1;
+  const offset = (page - 1) * limit;
+
+  // 3. Query paginated transactions
+  let dataSql = `
+    SELECT id, account_id, type, amount, description, reference_id, created_at
+    FROM transactions
+    WHERE account_id = $1
+  `;
+  const dataParams = [accountId];
+
+  if (type) {
+    dataSql += ' AND type = $2';
+    dataParams.push(type);
+  }
+
+  dataSql += ` ORDER BY created_at DESC LIMIT $${dataParams.length + 1} OFFSET $${dataParams.length + 2};`;
+  dataParams.push(limit, offset);
+
+  const dataResult = await query(dataSql, dataParams);
+
+  return {
+    transactions: dataResult.rows,
+    pagination: {
+      current_page: page,
+      page_size: limit,
+      total_records: totalRecords,
+      total_pages: totalPages,
+    },
+  };
 };

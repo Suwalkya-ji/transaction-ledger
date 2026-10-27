@@ -218,6 +218,31 @@ const server = app.listen(PORT, async () => {
     const invalidTypeRes = await fetch(`http://localhost:${PORT}/api/accounts/${account1Id}/transactions?type=invalid`);
     assert(invalidTypeRes.status === 400, 'Invalid ?type query parameter rejected with 400');
 
+    // Pagination tests
+    const page1Res = await fetch(`http://localhost:${PORT}/api/accounts/${account1Id}/transactions?page=1&limit=2`);
+    const page1Data = await page1Res.json();
+    assert(
+      page1Res.status === 200 &&
+        page1Data.data?.transactions?.length === 2 &&
+        page1Data.data?.pagination?.current_page === 1 &&
+        page1Data.data?.pagination?.page_size === 2 &&
+        page1Data.data?.pagination?.total_records === 3 &&
+        page1Data.data?.pagination?.total_pages === 2,
+      'Pagination page=1&limit=2 returns 2 records with correct metadata (total_pages=2, total_records=3)'
+    );
+
+    const page2Res = await fetch(`http://localhost:${PORT}/api/accounts/${account1Id}/transactions?page=2&limit=2`);
+    const page2Data = await page2Res.json();
+    assert(
+      page2Res.status === 200 &&
+        page2Data.data?.transactions?.length === 1 &&
+        page2Data.data?.pagination?.current_page === 2,
+      'Pagination page=2&limit=2 returns remaining 1 record'
+    );
+
+    const invalidPageRes = await fetch(`http://localhost:${PORT}/api/accounts/${account1Id}/transactions?page=-1`);
+    assert(invalidPageRes.status === 400, 'Invalid negative page parameter rejected with 400');
+
     console.log(`\n========================================`);
     console.log(`AUDIT RESULTS: ${passed} PASSED, ${failed} FAILED`);
     console.log(`========================================\n`);

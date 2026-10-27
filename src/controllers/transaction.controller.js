@@ -39,17 +39,21 @@ export const createTransactionHandler = async (req, res, next) => {
 export const getTransactionsHandler = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { type } = req.query;
+    const { type, page, limit } = req.query;
 
-    const transactions = await transactionService.getAccountTransactions(id, type);
+    const result = await transactionService.getAccountTransactions(id, {
+      type,
+      page,
+      limit,
+    });
 
     return res.status(200).json({
       status: 'success',
       data: {
         account_id: id,
-        total: transactions.length,
         filter: type || 'all',
-        transactions,
+        transactions: result.transactions,
+        pagination: result.pagination,
       },
     });
   } catch (error) {

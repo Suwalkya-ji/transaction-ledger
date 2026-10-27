@@ -15,6 +15,7 @@ A high-reliability, ACID-compliant Double-Entry-Ready Transaction Ledger API bui
 - [Automated Testing](#automated-testing)
 - [API Documentation](#api-documentation)
 - [Postman Testing Checklist](#postman-testing-checklist)
+- [Assumptions](#assumptions)
 
 ---
 
@@ -286,16 +287,15 @@ This verifies:
 ### 5. Get Transaction History
 - **Endpoint**: `GET /api/accounts/:id/transactions`
 - **Query Parameters**:
-  - `?type=credit` (Filter credits only)
-  - `?type=debit` (Filter debits only)
-  - Omitted (Returns both credit and debit)
+  - `type` (optional): `credit` or `debit`
+  - `page` (optional): positive integer, defaults to `1`
+  - `limit` (optional): positive integer (max 100), defaults to `10`
 - **Response**: `200 OK`
   ```json
   {
     "status": "success",
     "data": {
       "account_id": "5ed8f323-c0e2-4324-93fc-d140a36d4c02",
-      "total": 2,
       "filter": "all",
       "transactions": [
         {
@@ -316,7 +316,13 @@ This verifies:
           "reference_id": "REF001",
           "created_at": "2026-10-27T15:55:00.000Z"
         }
-      ]
+      ],
+      "pagination": {
+        "current_page": 1,
+        "page_size": 10,
+        "total_records": 2,
+        "total_pages": 1
+      }
     }
   }
   ```
@@ -343,4 +349,17 @@ This verifies:
 | 14 | Get All Transactions | `GET /api/accounts/:id/transactions` | None | `200 OK` |
 | 15 | Filter Credits Only | `GET /api/accounts/:id/transactions?type=credit` | Query: `type=credit` | `200 OK` |
 | 16 | Filter Debits Only | `GET /api/accounts/:id/transactions?type=debit` | Query: `type=debit` | `200 OK` |
-| 17 | Reject Invalid Filter Query | `GET /api/accounts/:id/transactions?type=invalid`| Query: `type=invalid` | `400 Bad Request` |
+| 17 | Paginate Transactions | `GET /api/accounts/:id/transactions?page=1&limit=2` | Query: `page=1&limit=2` | `200 OK` |
+| 18 | Reject Invalid Filter Query | `GET /api/accounts/:id/transactions?type=invalid`| Query: `type=invalid` | `400 Bad Request` |
+
+---
+
+## Assumptions
+
+1. **Currency Precision**: All monetary values (`balance` and `amount`) are represented with exact 2-decimal precision (`NUMERIC(15, 2)`). Inputs exceeding two decimal places (fractional cents) are rejected.
+2. **Account Balances**: Accounts must maintain a non-negative balance (`balance >= 0`). No overdraft facility is provided beyond rejection of debit transactions exceeding available funds.
+3. **Idempotency Scope**: The `reference_id` uniquely identifies a transaction **per account**. The same `reference_id` can be reused by different accounts.
+4. **Transaction Immutability**: Once created, transaction records cannot be updated, modified, or deleted through the API.
+5. **Pagination Defaults**: If `page` and `limit` query parameters are omitted, pagination defaults to `page=1` and `limit=10` (maximum 100 per page).
+6. **Single Currency**: All accounts and transactions operate in a single unified currency (no currency conversion / FX handling required).
+7. **Authentication & Authorization**: Per the assignment specification, authentication (e.g. JWT/OAuth) was omitted to focus purely on ledger integrity, database concurrency, and transaction atomicity.
